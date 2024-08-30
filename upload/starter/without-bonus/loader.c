@@ -1,3 +1,4 @@
+
 #include "loader.h"
 
 Elf32_Ehdr *ehdr;
@@ -8,7 +9,9 @@ int fd;
  * release memory and other cleanups
  */
 void loader_cleanup() {
-  
+
+  if(fd <0){
+    close(fd);
 }
 
 /*
@@ -38,11 +41,39 @@ void load_and_run_elf(char** argv) {
   size_t e_phentsize=ehdr.e_phentsize;
   uint16_t e_phnum= ehdr.e_phnum;
   
+  Elf32_Addr entry_address=ehdr.e_entry;
   lseek(fd, e_phoff, SEEK_SET);
   
-  Elf32_Phdr phdr;
+  void* virtual_memory;
+  Elf32_Addr offset_from_start;
+  for (int ph=0; ph<e_phnum; ph++){
+        Elf32_Phdr phdr;
+        
+        if (read(fd, &phdr, sizeof(phdr)) != sizeof(phdr)){
+            printf("The size of loaded program header doesn't match the standard program header size");
+            exit(1);
+        }
+        
+        if (phdr.p_type == PT_LOAD){
+          Elf32_Addr start_address= phdr.p_vaddr;
+          Elf32_Addr end_address= start_address+phdr.p_memsz;
+          
+          if (start_address<=entry_address && entry_address<=end_address){
+              virtual_memory= mmap(NULL, phdr.p_memsz, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANONYMOUS|MAP_PRIVATE, 0, 0);
+              offset_from_start=entry_address-start_address;
+              //printf("%p", (int*) virtual_mem);
+          }
+        }
+  }
   
-  if (read(fd, &phdr, sizeof()))
+  virtual_memory+=offset_from_start;
+  
+  printf("%p", virtual_memory);
+  
+  int (*function_pointer)()= (int (*)())virtual_memory;
+  
+  int result=function_pointer();
+  printf("User _start return value= %d\n", result);
   // 1. Load entire binary content into the memory from the ELF file. //
   // 2. Iterate through the PHDR table and find the section of PT_LOAD
   //    type that contains the address of the entrypoint method in fib.c
@@ -68,3 +99,4 @@ int main(int argc, char** argv)
   //loader_cleanup();
   return 0;
 }
+
