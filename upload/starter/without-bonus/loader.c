@@ -12,8 +12,8 @@ void loader_cleanup() {
 
   if(fd <0){
     close(fd);
+  }
 }
-
 /*
  * Load and run the ELF executable file
  */
@@ -28,6 +28,14 @@ void load_and_run_elf(char** argv) {
   
   printf("%d", fd);
   
+  size_t file_size=lseek(fd, 0, SEEK_END);
+  
+  lseek(fd, 0, SEEK_SET);
+  
+  char* file_data= (char*) malloc(file_size);
+  read(fd, file_data, file_size);
+  
+  lseek(fd, 0, SEEK_SET);
   Elf32_Ehdr ehdr;
   
   ssize_t sizeof_elf=read(fd, &ehdr, sizeof(ehdr));
@@ -45,7 +53,7 @@ void load_and_run_elf(char** argv) {
   lseek(fd, e_phoff, SEEK_SET);
   
   void* virtual_memory;
-  Elf32_Addr offset_from_start;
+  Elf32_Addr offset_from__start;
   for (int ph=0; ph<e_phnum; ph++){
         Elf32_Phdr phdr;
         
@@ -59,18 +67,18 @@ void load_and_run_elf(char** argv) {
           Elf32_Addr end_address= start_address+phdr.p_memsz;
           
           if (start_address<=entry_address && entry_address<=end_address){
-              virtual_memory= mmap(NULL, phdr.p_memsz, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANONYMOUS|MAP_PRIVATE, 0, 0);
-              offset_from_start=entry_address-start_address;
-              //printf("%p", (int*) virtual_mem);
+              virtual_memory= mmap(NULL, phdr.p_memsz, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANONYMOUS|MAP_PRIVATE, 0, 0); //allocating the virtual memory some space
+              memcpy(virtual_memory, file_data+phdr.p_offset, phdr.p_memsz); //copying the segment into this space
+              offset_from__start=entry_address-start_address;
           }
         }
   }
   
-  virtual_memory+=offset_from_start;
   
-  printf("%p", virtual_memory);
   
-  int (*function_pointer)()= (int (*)())virtual_memory;
+  
+  //printf("%d\n",*entry_address);
+  int (*function_pointer)()= (int (*)())(virtual_memory+offset_from__start);
   
   int result=function_pointer();
   printf("User _start return value= %d\n", result);
@@ -99,4 +107,3 @@ int main(int argc, char** argv)
   //loader_cleanup();
   return 0;
 }
-
