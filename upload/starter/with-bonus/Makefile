@@ -1,3 +1,4 @@
+
 # Making fib output file and moving to bin
 run1 : 
 	mkdir -p bin
@@ -17,11 +18,12 @@ run3:
 # to run first write make on temrinal of root directory and then write "make run"
 run: run1 run2 run3 
 	@echo "Running fib using launch..."
-	./bin/launch bin/fib
+	./bin/launch test/fib
 
 # after running write "make clean" to clean all the executable  files formed  
 clean:
-	rm -f bin/fib bin/launch
+	rm -f test/fib
+	rm -f bin/lib_simpleloader.so
 	rm -f loader/lib_simpleloader.so
 	cd loader && rm -f *.o lib_simpleloader.so
 	cd launcher && rm -f *.o
