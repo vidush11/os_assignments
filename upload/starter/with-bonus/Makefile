@@ -1,8 +1,3 @@
-
-# Dyanmic loader path for shared library linking, laoding the path from terminal
-LOADER_PATH = $(shell pwd)/loader
-
-
 # Making fib output file and moving to bin
 run1 : 
 	mkdir -p bin
