@@ -29,10 +29,15 @@
 <li>
   After it we casted the virtual address thus created by mmap of _start into a suitable function pointer and then ran it to get the desired return value of fib(40)
 </li>
-  
+
+<li>
+  After this we implemented the loader_cleanup function
+</li>
   
 </ol>
 
+<h4>We craeted a shared object file of loader.c and moved it to bin folder.</h4>
+<h4> We linked the fib.c file within test and let it remain there.</h4>
 Contributors-
 Rahul Aggarwal
 Vidush Jindal
