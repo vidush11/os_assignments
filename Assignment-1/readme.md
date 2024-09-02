@@ -5,3 +5,8 @@
 Contributors-
 
 <p>Firstly we wrote the code in loader.c. </p>
+<ol>
+<li>
+  We opened the file fib.out provided by argument   
+</li>
+</ol>
