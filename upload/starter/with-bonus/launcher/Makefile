@@ -1,5 +1,5 @@
 
-LOADER_PATH = $(shell realpath ../loader)
+LOADER_PATH = $(shell realpath ../bin)
 
 
 all:
