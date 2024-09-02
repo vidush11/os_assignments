@@ -4,7 +4,7 @@
 
 
 
-<p>Firstly we wrote the code in loader.c. </p>
+<h4>Firstly we wrote the code in loader.c. </h4>
 <ol>
 <li>
   We opened the file fib.out by using open() in c and checked for errors if it returned -1
@@ -36,9 +36,17 @@
   
 </ol>
 
+<h4>Writing the launcher.c file</h4>
+<ol>
+  <li>
+    We sewed together the parts we already wrote in loader.c
+  </li>
+</ol>
+
 <h4>We craeted a shared object file of loader.c and moved it to bin folder.</h4>
 <h4> We linked the fib.c file within test and let it remain there.</h4>
-Contributors-
+<h4> We then linked the launcher.c </h4></h4>
+<i><b>Contributors-</b></i>
 Rahul Aggarwal
 Vidush Jindal
 
