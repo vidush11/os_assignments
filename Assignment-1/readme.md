@@ -43,9 +43,13 @@
   </li>
 </ol>
 
-<h4>We craeted a shared object file of loader.c and moved it to bin folder.</h4>
+<h4>We created a shared object file of loader.c and moved it to bin folder.</h4>
 <h4> We linked the fib.c file within test and let it remain there.</h4>
-<h4> We then linked the launcher.c </h4></h4>
+<h4> We then linked the launcher.c using -l_simpleloader and linked shared object file by passing the -L flag. We also added the loader information of shared object file by passing the -rpath and -Wl flags already in the linking phase so that they make them avaliable during the loading phase, </h4>
+
+<h4> Rest task remained to run the launcher.out file in bin and passing it the ../test/fib.out argument</h4>
+
+<p><i> Thanks for Reading</i></p>
 <i><b>Contributors-</b></i>
 Rahul Aggarwal
 Vidush Jindal
