@@ -50,7 +50,7 @@
 <h4> Rest task remained to run the launcher.out file in bin and passing it the ../test/fib.out argument</h4>
 
 <p><i> Thanks for Reading</i></p>
-<i><b>Contributors-</b></i>
+<i><b>Contributors-</b></i><br>
 Rahul Aggarwal<br>
 Vidush Jindal
 
