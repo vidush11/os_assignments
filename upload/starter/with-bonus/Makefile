@@ -22,7 +22,7 @@ run3:
 # to run first write make on temrinal of root directory and then write "make run"
 run: run1 run2 run3 
 	@echo "Running fib using launch..."
-	@LD_LIBRARY_PATH=$(LOADER_PATH) ./bin/launch bin/fib
+	./bin/launch bin/fib
 
 # after running write "make clean" to clean all the executable  files formed  
 clean:
