@@ -1,6 +1,6 @@
 
 all:
-	gcc -m32 -no-pie -nostdlib -o fib fib.c && mv fib ../bin/
+	gcc -m32 -no-pie -nostdlib -o fib fib.c
 
 clean :
-		rm -f ../bin/fib
+		rm -f /fib
