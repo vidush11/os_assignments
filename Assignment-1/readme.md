@@ -51,6 +51,6 @@
 
 <p><i> Thanks for Reading</i></p>
 <i><b>Contributors-</b></i>
-Rahul Aggarwal
+Rahul Aggarwal<br>
 Vidush Jindal
 
