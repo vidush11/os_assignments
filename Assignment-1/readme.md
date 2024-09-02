@@ -2,7 +2,12 @@
 
 <h2>In this we have made the with- bonus assignment.</h2>
 
+<h4>Open 'upload' directory and then open terminal there. <br/>
+Type "make run" on terminal to run the file in test directory using shared library and launch executable.<br/>
+Type "make clean" on terminal to delete temporary file formed compilation.<br/>
 
+Always run make clean file to ensure the previous executable files are  deleted. 
+</h4>
 
 <h4>Firstly we wrote the code in loader.c. </h4>
 <ol>
@@ -48,6 +53,7 @@
 <h4> We then linked the launcher.c using -l_simpleloader and linked shared object file by passing the -L flag. We also added the loader information of shared object file by passing the -rpath and -Wl flags already in the linking phase so that they make them avaliable during the loading phase, </h4>
 
 <h4> Rest task remained to run the launcher.out file in bin and passing it the ../test/fib.out argument</h4>
+
 
 <p><i> Thanks for Reading</i></p>
 <i><b>Contributors-</b></i><br>
