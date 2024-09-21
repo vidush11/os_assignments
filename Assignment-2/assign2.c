@@ -6,11 +6,14 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <limits.h>
+#include<signal.h>
 
 #define max_line 80
 
 char com_list[20][max_line];
 int a_count = 0;
+
+pid_t child_pid = -1;
 
 void add_to_past_com(char *string) {
     for (int i = 19; i > 0; i--) {
@@ -38,17 +41,34 @@ bool backgrd_and_filter(char *input, char **arr) {
         return false;
     }
 }
+void sigint_handler(int sig){
+    if(child_pid>0){
+        kill(child_pid,SIGINT);
+        printf("Terminated the Process with PID %d\n",child_pid);
+        child_pid = -1;
+    }else{
+        printf("Caught Ctrl+c | Enter 'exit' to exit");
+    }
+    fflush(stdout);
+}
+
 
 int main() {
     char input[max_line];
     char *arr[(max_line / 2) + 1];
     pid_t pid;
+
     int status;
     bool bkg;
 
+    signal(SIGINT,sigint_handler);
+
     while (1) {
         printf("Vidus-Rahul's Shell$ ");
-        if (fgets(input, max_line, stdin) != NULL) {
+
+
+
+
             add_to_past_com(input);
             input[strcspn(input, "\n")] = '\0';
 
@@ -70,6 +90,7 @@ int main() {
                 perror("Forking failed | Process creation failed");
                 exit(1);
             } else if (pid == 0) {
+                child_pid = pid;
                 if (execvp(arr[0], arr) == -1) {
                     perror("Command execution failed");
                 }
@@ -78,12 +99,16 @@ int main() {
 
                 if (!bkg) {
                     waitpid(pid, &status, 0);
+                    child_pid = -1;
+
                     if (!WIFEXITED(status)) {
                         perror("Error!");
+
                     }
                 } else {
                     printf("Process running in background with PID: %d\n", pid);
                 }
+
             }
         }
     }
