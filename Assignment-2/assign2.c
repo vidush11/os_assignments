@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <limits.h>
-#include<signal.h>
+#include <signal.h>
 
 #define max_line 80
 
@@ -41,17 +41,17 @@ bool backgrd_and_filter(char *input, char **arr) {
         return false;
     }
 }
-void sigint_handler(int sig){
-    if(child_pid>0){
-        kill(child_pid,SIGINT);
-        printf("Terminated the Process with PID %d\n",child_pid);
+
+void sigint_handler(int sig) {
+    if (child_pid > 0) {
+        kill(child_pid, SIGINT);
+        printf("Terminated the Process with PID %d\n", child_pid);
         child_pid = -1;
-    }else{
-        printf("Caught Ctrl+c | Enter 'exit' to exit");
+    } else {
+        printf("Caught Ctrl+C | Enter 'exit' to exit\n");
     }
     fflush(stdout);
 }
-
 
 int main() {
     char input[max_line];
@@ -61,31 +61,65 @@ int main() {
     int status;
     bool bkg;
 
-    signal(SIGINT,sigint_handler);
+    signal(SIGINT, sigint_handler);
+
+    int once = 0;
 
     while (1) {
-        printf("Vidus-Rahul's Shell$ ");
+        once++;
 
+        if (once == 1) {
+            system("clear");
+            printf("\n");
+            printf("       _==/          i     i          \\==_\n");
+            printf("     /XX/            |\\___/|            \\XX\\\n");
+            printf("   /XXXX\\            |XXXXX|            /XXXX\\\n");
+            printf("  |XXXXXX\\_         _XXXXXXX_         _/XXXXXX|\n");
+            printf(" XXXXXXXXXXXxxxxxxxXXXXXXXXXXXxxxxxxxXXXXXXXXXXX\n");
+            printf("|XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX|\n");
+            printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
+            printf("|XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX|\n");
+            printf(" XXXXXX/^^^^\"\\XXXXXXXXXXXXXXXXXXXXX/^^^^^\\XXXXXX\n");
+            printf("  |XXX|       \\XXX/^^\\XXXXX/^^\\XXX/       |XXX|\n");
+            printf("    \\XX\\       \\X/    \\XXX/    \\X/       /XX/\n");
+            printf("       \"\\       \"      \\X/      \"       /\"\n");
+            printf("\n");
+        }
 
+        printf("Bat's Shell$ ");
 
-
+        if (fgets(input, max_line, stdin) != NULL) {
+            if (input[0] == '\n') {
+                continue;
+            }
             add_to_past_com(input);
             input[strcspn(input, "\n")] = '\0';
 
             if (strcmp(input, "exit") == 0) {
                 break;
             }
-            // if (strcmp(arr[0], "^[[A") == 0) {
-            //     strcpy(input,com_list[a_count-1]);
-            // }
 
+            // Parsing input into command and arguments
             bkg = backgrd_and_filter(input, arr);
 
-            pid = fork();
-            if (strcmp(arr[0], "exit") == 0) {
-                break;
+            // Handle 'cd' command without forking
+            if (strcmp(arr[0], "cd") == 0) {
+                if (arr[1] == NULL) {
+                    printf("cd: expected argument\n");
+                } else {
+                    if (chdir(arr[1]) != 0) {
+                        perror("cd failed");
+                    }
+                }
+                continue;
+            }
+            if (strcmp(arr[0], "clear") == 0) {
+                once = 0;
             }
 
+
+
+            pid = fork();
             if (pid < 0) {
                 perror("Forking failed | Process creation failed");
                 exit(1);
@@ -96,19 +130,16 @@ int main() {
                 }
                 exit(EXIT_FAILURE);
             } else {
-
                 if (!bkg) {
                     waitpid(pid, &status, 0);
                     child_pid = -1;
 
                     if (!WIFEXITED(status)) {
                         perror("Error!");
-
                     }
                 } else {
                     printf("Process running in background with PID: %d\n", pid);
                 }
-
             }
         }
     }
