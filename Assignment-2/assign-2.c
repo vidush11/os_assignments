@@ -89,7 +89,7 @@ int main() {
             printf("\n");
         }
 
-        write(STDOUT_FILENO, "Bat's Shell$ ", 9);
+        write(STDOUT_FILENO, "Bat's Shell$ ", 12);
 
         // Input handling
         fgets(input, 1000, stdin);
