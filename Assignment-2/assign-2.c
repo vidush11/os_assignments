@@ -14,6 +14,7 @@ char com_list[20][max_line];
 char time_list[20][max_line];
 pid_t pid_list[20];
 int a_count = 0;
+int child_pid = -1;
 
 void add_to_past_com(char *string, pid_t pid, long time_taken) {
     for (int i = 19; i > 0; i--) {
@@ -57,12 +58,18 @@ bool execute_command(char* input) {
 }
 
 void sigint_handler(int sig) {
-    printf("\nCaught Ctrl+C | Enter 'exit' to exit\n");
+    if (child_pid > 0) {
+        kill(child_pid, SIGINT);
+        printf("Terminated the Process with PID %d\n", child_pid);
+        child_pid = -1;
+    } else {
+        printf("Caught Ctrl+C | Enter 'exit' to exit\n");
+    }
     fflush(stdout);
 }
 
 int main() {
-    char* input = malloc(1000);
+    char input[max_line];
     bool back;
     struct timeval start, end;
     signal(SIGINT, sigint_handler);
@@ -89,121 +96,129 @@ int main() {
             printf("\n");
         }
 
-        write(STDOUT_FILENO, "Bat's Shell$ ", 12);
+        write(STDOUT_FILENO, "Bat's Shell$ ", 13);
 
         // Input handling
-        fgets(input, 1000, stdin);
-        input[strcspn(input, "\n")] = 0;  // Remove trailing newline
-
-        if (strcmp(input, "exit") == 0) {
-            for (int i = 0; i < 20 && i < a_count; i++) {
-                printf("Command: %s | PID: %d | Time: %s\n", com_list[i], pid_list[i], time_list[i]);
+        if(fgets(input, max_line, stdin) != NULL){
+            if(input[0] == '\n'){
+                continue;
             }
-            break;
-        }
+            input[strcspn(input, "\n")] = 0;  // Remove trailing newline
 
-        char* arr[10];  // Temporary command array
-        int l = 0;
-        back = splitter(input, " ", arr, &l);  // Split input into command and arguments
 
-        // Built-in 'cd' command
-        if (strcmp(arr[0], "cd") == 0) {
-            if (arr[1] == NULL) {
-                printf("cd: expected argument\n");
-            } else {
-                if (chdir(arr[1]) != 0) {
-                    perror("cd failed");
+
+
+            if (strcmp(input, "exit") == 0) {
+                for (int i = 0; i < 20 && i < a_count; i++) {
+                    printf("Command: %s | PID: %d | Time: %s\n", com_list[i], pid_list[i], time_list[i]);
                 }
-            }
-            continue;
-        }
-
-        // Built-in 'clear' command
-        if (strcmp(arr[0], "clear") == 0) {
-            once = 0;
-            continue;
-        }
-
-        // Record start time
-        gettimeofday(&start, NULL);
-
-        int pid = fork();
-        if (pid == -1) {
-            perror("Shell didn't fork correctly!\n");
-        } else if (pid == 0) {  // Child process
-            // Handling pipes
-            int pipes = 0;
-            for (int p = 0; input[p] != '\0'; p++) {
-                if (input[p] == '|') pipes++;
+                break;
             }
 
-            if (pipes == 0) {  // No pipes, standard execution
-                execute_command(input);
-            } else {  // Handling pipes
-                char* parts[10];
-                int no_of_parts;
-                int pipefds[9][2];  // Supports up to 9 pipes (random)
+            char* arr[10];  // Temporary command array
+            int l = 0;
+            back = splitter(input, " ", arr, &l);  // Split input into command and arguments
 
-                splitter(input, "|", parts, &no_of_parts);
-
-                for (int i = 0; i < no_of_parts - 1; i++) {
-                    if (pipe(pipefds[i]) == -1) {
-                        perror("Pipe failed");
+            // Built-in 'cd' command
+            if (strcmp(arr[0], "cd") == 0) {
+                if (arr[1] == NULL) {
+                    printf("cd: expected argument\n");
+                } else {
+                    if (chdir(arr[1]) != 0) {
+                        perror("cd failed");
                     }
                 }
+                continue;
+            }
 
-                for (int i = 0; i < no_of_parts; i++) {
-                    int pid = fork();
-                    if (pid == -1) {
-                        perror("Fork failed");
-                    } else if (pid == 0) {  // Child process in piping
-                        if (i != 0) {  // Redirect stdin for all except first
-                            dup2(pipefds[i - 1][0], STDIN_FILENO);
-                        }
-                        if (i != no_of_parts - 1) {  // Redirect stdout for all except last
-                            dup2(pipefds[i][1], STDOUT_FILENO);
-                        }
 
-                        // Close all pipe file descriptors
-                        for (int j = 0; j < no_of_parts - 1; j++) {
-                            close(pipefds[j][0]);
-                            close(pipefds[j][1]);
-                        }
+            // Built-in 'clear' command
+            if (strcmp(arr[0], "clear") == 0) {
+                once = 0;
+                continue;
+            }
 
-                        execute_command(parts[i]);
+            // Record start time
+            gettimeofday(&start, NULL);
+
+            int pid = fork();
+            child_pid = pid;
+            if (pid == -1) {
+                perror("Shell didn't fork correctly!\n");
+            } else if (pid == 0) {  // Child process
+                // Handling pipes
+                int pipes = 0;
+                for (int p = 0; input[p] != '\0'; p++) {
+                    if (input[p] == '|') pipes++;
+                }
+
+                if (pipes == 0) {  // No pipes, standard execution
+                    execute_command(input);
+                } else {  // Handling pipes
+                    char* parts[10];
+                    int no_of_parts;
+                    int pipefds[9][2];  // Supports up to 9 pipes (random)
+
+                    splitter(input, "|", parts, &no_of_parts);
+
+                    for (int i = 0; i < no_of_parts - 1; i++) {
+                        if (pipe(pipefds[i]) == -1) {
+                            perror("Pipe failed");
+                        }
+                    }
+
+                    for (int i = 0; i < no_of_parts; i++) {
+                        int pid = fork();
+                        if (pid == -1) {
+                            perror("Fork failed");
+                        } else if (pid == 0) {  // Child process in piping
+                            if (i != 0) {  // Redirect stdin for all except first
+                                dup2(pipefds[i - 1][0], STDIN_FILENO);
+                            }
+                            if (i != no_of_parts - 1) {  // Redirect stdout for all except last
+                                dup2(pipefds[i][1], STDOUT_FILENO);
+                            }
+
+                            // Close all pipe file descriptors
+                            for (int j = 0; j < no_of_parts - 1; j++) {
+                                close(pipefds[j][0]);
+                                close(pipefds[j][1]);
+                            }
+
+                            execute_command(parts[i]);
+                        }
+                    }
+
+                    // Close pipes in the parent process
+                    for (int i = 0; i < no_of_parts - 1; i++) {
+                        close(pipefds[i][0]);
+                        close(pipefds[i][1]);
+                    }
+
+                    // Wait for all child processes to finish
+                    for (int i = 0; i < no_of_parts; i++) {
+                        wait(NULL);
                     }
                 }
-
-                // Close pipes in the parent process
-                for (int i = 0; i < no_of_parts - 1; i++) {
-                    close(pipefds[i][0]);
-                    close(pipefds[i][1]);
-                }
-
-                // Wait for all child processes to finish
-                for (int i = 0; i < no_of_parts; i++) {
-                    wait(NULL);
+            } else {  // Parent process
+                if (!back) {
+                    waitpid(pid, &status, 0);
+                    if (!WIFEXITED(status)) {
+                            perror("Error!");
+                    };  // Wait for child if not a background process
+                }else{
+                    printf("Process running in background with PID: %d\n", pid);
                 }
             }
-        } else {  // Parent process
-            if (!back) {
-                waitpid(pid, &status, 0);
-                if (!WIFEXITED(status)) {
-                        perror("Error!");
-                };  // Wait for child if not a background process
-            }else{
-                printf("Process running in background with PID: %d\n", pid);
-            }
+
+            // Record end time and calculate duration
+            gettimeofday(&end, NULL);
+            long time_taken = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000;
+
+            // Add to history
+            add_to_past_com(input, pid, time_taken);
         }
-
-        // Record end time and calculate duration
-        gettimeofday(&end, NULL);
-        long time_taken = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000;
-
-        // Add to history
-        add_to_past_com(input, pid, time_taken);
     }
 
-    free(input);
     return 0;
 }
