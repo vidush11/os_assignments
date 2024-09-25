@@ -128,6 +128,14 @@ int main() {
                         perror("cd failed");
                     }
                 }
+                add_to_past_com(input, 0, 1);
+                continue;
+            }
+
+            if(strcmp(arr[0],"history")==0){
+                for (int i = 0; i < 20 && i < a_count; i++) {
+                    printf("Command: %s | PID: %d | Time: %s\n", com_list[i], pid_list[i], time_list[i]);
+                }
                 continue;
             }
 
