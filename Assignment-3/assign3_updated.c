@@ -8,9 +8,11 @@
 #include <string.h>
 #include <sys/time.h>
 #include <signal.h>
+#include <sys/shm.h>
 
 #define MAX_LINE 80
 #define MAX_PROCESSES 20
+#define SHM_KEY 0x1234  // Key is pin for shared memory to verify whether the shared process are  correct or not
 
 char buffer[1000];
 char com_list[20][1024];
@@ -30,16 +32,28 @@ typedef struct Process {
     struct timeval end_time;
 } Process;
 
+// Shared memory structure
+typedef struct SharedMemory {
+    pid_t pid;
+    long wait_time;
+    long running_time;
+    int ready;  // Flag indicating if data is available
+} SharedMemory;
+
 // Priority queue to store processes
 Process priorityQueue[MAX_PROCESSES];
 int queueSize = 0;
 
-void add_to_past_com(char *string, pid_t pid, long wait_time, long running_time) {
+SharedMemory *shm_ptr;  // Pointer to shared memory
+
+void add_to_past_com(char *string, pid_t pid, int priority, long wait_time, long running_time) {
     strcpy(com_list[commands], string);
     pid_list[commands] = pid;
-    printf("Command: %s | PID: %d | Wait Time: %ld ms | Running Time: %ld ms\n", string, pid, wait_time, running_time);
+    printf("Command: %s | PID: %d | Priority: %d | Wait Time: %ld ms | Running Time: %ld ms\n", 
+           string, pid, priority, wait_time, running_time);
     commands++;
 }
+
 
 void splitter(char* input, const char* delimiter, char* commands[], int *length) {
     strcpy(buffer, input);
@@ -77,7 +91,7 @@ void signal_handler(int signal) {
     }
 }
 
-// Priority queue functions
+// Swapping Processes itself for priority queue
 void swap(Process *a, Process *b) {
     Process temp = *a;
     *a = *b;
@@ -146,42 +160,72 @@ void set_custom_signals(){
     //sigaction(?, default_action);
 }
 
-
 long calculate_time_diff(struct timeval start, struct timeval end) {
     return (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000;
 }
 
 void process_and_display_exit_stats() {
+    if (queueSize == 0) {
+        printf("No processes in the queue.\n");
+        return;
+    }
+    
     while (queueSize > 0) {
         Process proc = dequeue();
-        gettimeofday(&proc.start_time, NULL);  // Start time
+        gettimeofday(&proc.start_time, NULL);
         child_pid = fork();
         
         if (child_pid == 0) {
-            // Child process executes the command
+            // Execute the command in child process
             execlp(proc.command, proc.command, (char *)NULL);
             perror("Command execution failed");
             exit(1);
         } else {
-            // Parent process waits for child and records the times
             waitpid(child_pid, NULL, 0);
-            gettimeofday(&proc.end_time, NULL);  // End time
+            gettimeofday(&proc.end_time, NULL);
             proc.wait_time = calculate_time_diff(proc.enqueue_time, proc.start_time);
             proc.running_time = calculate_time_diff(proc.start_time, proc.end_time);
-            add_to_past_com(proc.command, proc.pid, proc.wait_time, proc.running_time);
+
+            shm_ptr->pid = proc.pid;
+            shm_ptr->wait_time = proc.wait_time;
+            shm_ptr->running_time = proc.running_time;
+            shm_ptr->ready = 1;
+
+            add_to_past_com(proc.command, proc.pid, proc.priority, proc.wait_time, proc.running_time);
             child_pid = -1;
         }
     }
+    printf("All queued processes have been processed.\n");
 }
+
+
 
 int main(int argc, char* argv[]) {
     set_custom_signals();
+
+    int shm_id;
+    shm_id = shmget(SHM_KEY, sizeof(SharedMemory), IPC_CREAT | 0666);
+    if (shm_id < 0) {
+        perror("shmget failed");
+        exit(1);
+    }
+    shm_ptr = (SharedMemory *)shmat(shm_id, NULL, 0);
+    if (shm_ptr == (void *) -1) {
+        perror("shmat failed");
+        exit(1);
+    }
+    shm_ptr->ready = 0;  // Initialize the "ready" flag to 0
 
     char input[1024];
     int status;
     int once = 0;
     
     while (true) {
+        if (shm_ptr->ready == 1) {
+            printf("Process %d terminated | Wait Time: %ld ms | Running Time: %ld ms\n",
+                   shm_ptr->pid, shm_ptr->wait_time, shm_ptr->running_time);
+            shm_ptr->ready = 0;  // Reset flag after reading
+        }
         once++;
         if (once == 1) {
             system("clear");
@@ -203,15 +247,13 @@ int main(int argc, char* argv[]) {
         write(STDOUT_FILENO, "Bat's Shell$ ", 13);
         fgets(input, 1024, stdin);
 
-
-        
         if (input[0] == '\n') continue;
         input[strcspn(input, "\n")] = '\0';
 
         if (strcmp(input, "clear") == 0) {
-                once = 0;
-                continue;
-            }
+            once = 0;
+            continue;
+        }
         
         if (strcmp(input, "exit") == 0) {
             process_and_display_exit_stats();  // Process and display stats for all queued jobs
@@ -219,48 +261,32 @@ int main(int argc, char* argv[]) {
         }
         
         char* arr[10];
-        int len;
+        int len = 0;
         splitter(input, " ", arr, &len);
-        
+
         if (strcmp(arr[0], "submit") == 0) {
-            int priority = (len > 2) ? atoi(arr[2]) : 1;  // Default priority is 1 if not specified
+            if (len < 3) {
+                printf("Usage: submit <command> <priority>\n");
+                continue;
+            }
+            
+            // Assign command and priority correctly
             Process proc;
-            proc.priority = priority;
-            snprintf(proc.command, sizeof(proc.command), "%s", arr[1]);
-            gettimeofday(&proc.enqueue_time, NULL);  // Record enqueue time
+            proc.priority = atoi(arr[2]); // Priority as the last argument
+            snprintf(proc.command, sizeof(proc.command), "%s", arr[1]); // Command as the second argument
+            proc.pid = getpid();
+            gettimeofday(&proc.enqueue_time, NULL);
             
-            proc.pid = fork();
-            
-            if (proc.pid == 0) {  // Child process
-                if (strcmp(arr[1], "submit") == 0) {
-                    kill(getpid(), SIGSTOP);  // Pause the process initially
-                }
-                execute_command(arr[1]);
-                exit(0);
-            } else {  // Parent process
-                enqueue(proc);
-                printf("Process %d with priority %d submitted\n", proc.pid, priority);
-            }
-        } else {
-            int pid = fork();
-            struct timeval start, end;
-            gettimeofday(&start, NULL);  // Record start time
-            
-            if (pid == 0) {
-                execute_command(input);
-                exit(0);
-            } else {
-                waitpid(pid, &status, 0);
-                gettimeofday(&end, NULL);  // Record end time
-                
-                if (!WIFEXITED(status)) {
-                    perror("Error!");
-                }
-                
-                long running_time = calculate_time_diff(start, end);
-                add_to_past_com(input, pid, 0, running_time);  // Wait time is zero for non-queued commands
-            }
+            enqueue(proc); // Enqueue the new process
+            printf("Submitted command: %s with priority %d\n", proc.command, proc.priority);
+            continue;
         }
+
+
     }
+
+    shmdt(shm_ptr);  // Detach from shared memory
+    shmctl(shm_id, IPC_RMID, NULL);  // Remove shared memory segment
+
     return 0;
 }
