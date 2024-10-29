@@ -145,6 +145,8 @@ void set_custom_signals(){
     sigaction(2, &custom_action, NULL); //NULL for no refernce for previous signal handler to be stored
     //sigaction(?, default_action);
 }
+
+
 long calculate_time_diff(struct timeval start, struct timeval end) {
     return (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000;
 }
@@ -177,13 +179,39 @@ int main(int argc, char* argv[]) {
 
     char input[1024];
     int status;
+    int once = 0;
     
     while (true) {
-        write(STDOUT_FILENO, "Bat's Shell ", 11);
+        once++;
+        if (once == 1) {
+            system("clear");
+            printf("\n");
+            printf("       _==/          i     i          \\==_\n");
+            printf("     /XX/            |\\___/|            \\XX\\\n");
+            printf("   /XXXX\\            |XXXXX|            /XXXX\\\n");
+            printf("  |XXXXXX\\_         _XXXXXXX_         _/XXXXXX|\n");
+            printf(" XXXXXXXXXXXxxxxxxxXXXXXXXXXXXxxxxxxxXXXXXXXXXXX\n");
+            printf("|XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX|\n");
+            printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
+            printf("|XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX|\n");
+            printf(" XXXXXX/^^^^\"\\XXXXXXXXXXXXXXXXXXXXX/^^^^^\\XXXXXX\n");
+            printf("  |XXX|       \\XXX/^^\\XXXXX/^^\\XXX/       |XXX|\n");
+            printf("    \\XX\\       \\X/    \\XXX/    \\X/       /XX/\n");
+            printf("       \"\\       \"      \\X/      \"       /\"\n");
+            printf("\n");
+        }
+        write(STDOUT_FILENO, "Bat's Shell$ ", 13);
         fgets(input, 1024, stdin);
+
+
         
         if (input[0] == '\n') continue;
         input[strcspn(input, "\n")] = '\0';
+
+        if (strcmp(input, "clear") == 0) {
+                once = 0;
+                continue;
+            }
         
         if (strcmp(input, "exit") == 0) {
             process_and_display_exit_stats();  // Process and display stats for all queued jobs
