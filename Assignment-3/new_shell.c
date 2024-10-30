@@ -86,6 +86,41 @@ void set_custom_signals(){
     //sigaction(?, default_action);
 }
 
+int get_time(int pid){
+    char cmd[100];
+    sprintf(&(cmd[0]), "ps -p %d -o times", pid);
+    char output[100];
+    
+    FILE *fp;
+    
+    if ((fp = popen(&(cmd[0]), "r")) == NULL) {
+        printf("Error!\n");
+        return 1;
+    }
+    
+    int i=0;
+    int time=0;
+    
+    while (fgets(&(output[0]), 100, fp) != NULL) {
+        i++;
+        if (i==2){
+            time=atoi(&(output[7]));
+        }
+        
+    }
+    
+    if (pclose(fp)) {
+        printf("Command not found!\n");
+        return 1;
+    }
+    
+    return time; //returns time in seconds
+}
+
+long max(long a, long b){
+    if (a>=b) return a;
+    else return b;
+}
 
 int main(int argc, char* argv[]) {
     int fd = shm_open(NAME, O_CREAT | O_RDWR, 0666); //o_creat- creating this shm, o_rdwr-
@@ -99,7 +134,7 @@ int main(int argc, char* argv[]) {
     void* shm_ptr= mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
     
     *((int*) shm_ptr)=0; //setting the size of array in shared memory to be 0
-    printf("%d", getpid());
+    //printf("%d", getpid());
     int ncpu=1;
     int tslice=10;
     if (argc>1){
@@ -199,7 +234,7 @@ int main(int argc, char* argv[]) {
         if (strcmp(arr[0], "submit") == 0){
             //no pipes in this by default
             scheduler=true;
-            if (48<=input[l-1] and input[l-1]<=57){ //the last character before end is a number
+            if (48<=input[l-1] && input[l-1]<=57){ //the last character before end is a number
                 priority=input[l-1]-48;
             }
             else{
@@ -312,10 +347,16 @@ int main(int argc, char* argv[]) {
         
         // Record end time and calculate duration
         gettimeofday(&end, NULL);
+        
+        
+        
+        //long actual_time_taken=get_time(pid)*1000;
+        
+        //printf("Actual time");
         long time_taken = (end.tv_sec - start.tv_sec)*1000 + (end.tv_usec - start.tv_usec) /1000; //time take in milli seconds
         
         // Add to history
-        add_to_past_com(input, pid, time_taken);
+        add_to_past_com(input, pid,time_taken);
     }
 
     munmap(shm_ptr, size);
