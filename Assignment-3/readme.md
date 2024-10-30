@@ -8,4 +8,4 @@ where prioirty is a number and it can be leaved blank too which would mean by de
 
 A process with higher priority value gets higher priority
 
-<h1>How Have we implemented Scheduler?</h1>
+<h2>How Have we implemented Scheduler?</h2>
