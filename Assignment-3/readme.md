@@ -48,8 +48,12 @@ p4            30ms         4<br>
 THe graphs of completion time and waiting time for both the schemes are given resepctively (1 on x axis is upper scheme)<br>
 <br>
 
-![Completition time of two schemes](fig.png)
+![Completition time of two schemes](fig.png)<br><br>
+![Waiting time of two schemes](fig2.png)
+<br><br>
 These show that when processes which are lower in execution time are given higher priority the average waiting time and completion time <b>decreases</b>. And in the opposite case vice versa<br>
+
+The execution time however obviously remains same for both schemes.<br>
 
 Hence we should order processes of lower execution time higher priority for maximing the efficiency. This is usually done in MLFQs implemented in todays schedulers for OS.<br>
 
