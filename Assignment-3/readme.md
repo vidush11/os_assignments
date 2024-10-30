@@ -37,16 +37,16 @@ p1            5ms          4<br>
 p2            10ms         3<br>
 p3            20ms         2<br>
 p4            30ms         1<br>
-
-or the order priority<br>
-
+<br>
+or the other priority
+<br>
 p1            5ms          1<br>
 p2            10ms         2<br>
 p3            20ms         3<br>
 p4            30ms         4<br>
 
 THe graphs of completion time and waiting time for both the schemes are given resepctively (1 on x axis is upper scheme)<br>
-
+<br>
 
 These show that when processes which are lower in execution time are given higher priority the average waiting time and completion time <b>decreases</b>. And in the opposite case vice versa<br>
 
