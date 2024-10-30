@@ -7,8 +7,14 @@
 #include <sys/types.h>
 #include <string.h>
 #include <sys/time.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+
 
 #define max_line 80
+#define NAME "/yoyo"
+#define size 4096
+
 char buffer[1000];
 char com_list[20][1024];
 char time_list[20][1024];
@@ -48,8 +54,8 @@ void execute_command(char* input) {
 
 }
 
-void signal_handler(int signal) {
-    if (signal== SIGINT){
+void signal_handler(int sig) {
+    if (sig== SIGINT){
         if (child_pid > 0) {
             kill(child_pid, SIGINT);
             printf("Terminated the Process with PID %d\n", child_pid);
@@ -60,8 +66,8 @@ void signal_handler(int signal) {
         }
         fflush(stdout);
     }
-    else {
-        ;//pass
+    else if (sig==SIGCHLD){
+        signal(SIGCHLD, SIG_IGN);
     }
 }
 
@@ -76,11 +82,23 @@ void set_custom_signals(){
     default_action.sa_handler=SIG_DFL;
     
     sigaction(2, &custom_action, NULL); //NULL for no refernce for previous signal handler to be stored
+    sigaction(17, &custom_action, NULL);
     //sigaction(?, default_action);
 }
 
 
 int main(int argc, char* argv[]) {
+    int fd = shm_open(NAME, O_CREAT | O_RDWR, 0666); //o_creat- creating this shm, o_rdwr-
+    if (fd==-1){
+    perror("Couldn't create a shared memory");
+    exit(1);
+    }
+    
+    ftruncate(fd, size); //limiting the size of shm equal size
+    
+    void* shm_ptr= mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    
+    *((int*) shm_ptr)=0; //setting the size of array in shared memory to be 0
     printf("%d", getpid());
     int ncpu=1;
     int tslice=10;
@@ -96,13 +114,14 @@ int main(int argc, char* argv[]) {
     int status;
     bool scheduler=false; //to pause the child process if it uses submit
     int background_proc=0; //to count the number of background process run this far
+    int priority=1;
     
     while (true) {
-    	
+        
         once++;
         
         if (once==1){
-        	system("clear");
+            system("clear");
         }
         write(STDOUT_FILENO, "Vidush-Rahul's Shell$ ", 22);
         
@@ -178,11 +197,17 @@ int main(int argc, char* argv[]) {
         }
         
         if (strcmp(arr[0], "submit") == 0){
-                //no pipes in this by default
-                scheduler=true;
+            //no pipes in this by default
+            scheduler=true;
+            if (48<=input[l-1] and input[l-1]<=57){ //the last character before end is a number
+                priority=input[l-1]-48;
+            }
+            else{
+                priority=1;
+            }
         }
         else{
-        	scheduler=false;
+            scheduler=false;
         }
         // Record start time
         gettimeofday(&start, NULL);
@@ -264,12 +289,18 @@ int main(int argc, char* argv[]) {
         
         else {  // Parent process
             if (scheduler){
-            	printf("Process: %d submitted for scheduler.\n", pid);
-            	//waitpid(pid, NULL, 0);
+                printf("Process: %d submitted for scheduler.\n", pid);
+                //waitpid(pid, NULL, 0);
                 kill(pid, 19);
+                    
+                int l=*((int*) shm_ptr);
+                *((int*) shm_ptr+l+1)=pid;
+                *((int*) shm_ptr+l+2)=priority;
+                *((int*) shm_ptr)=l+2;
+                
             }
             else if (background ) {
-            	printf("[%d] %d\n", background_proc, pid);
+                printf("[%d] %d\n", background_proc, pid);
             }
             else{
                 waitpid(pid, &status, 0);
@@ -287,5 +318,8 @@ int main(int argc, char* argv[]) {
         add_to_past_com(input, pid, time_taken);
     }
 
+    munmap(shm_ptr, size);
+    close(fd);
+    shm_unlink(NAME);
     return 0;
 }
