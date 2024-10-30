@@ -5,7 +5,7 @@ In this we have implemented the updated shell (with added functionality like & a
 
 You can submit a process to be schedule with the syntax<br>
 submit ./fib.out <priority> <br>
-where prioirty is a number and it can be leaved blank too which would mean by default.<br>
+where prioirty is a number and it can be leaved blank too which would mean 1 by default.<br>
 
 A process with higher priority value gets higher priority
 
@@ -29,6 +29,29 @@ We have implemented a shared memory by the name of "YOYO" and size 4096 bytes. I
 <h2>Basic usage of the shell</h2>
 echo jaat dont cheat
 
-<h2> Statistics for execution time and waiting time for scheduler-></h2>
+<h2> Statistics for completion time and waiting time for scheduler-></h2>
+Cnnsider time slice to be 10ms, and 1 cpu<br>
+Consider 4 processes with the following priority<br>
+Process Name  Exec. Time   Priority<br>
+p1            5ms          4<br>
+p2            10ms         3<br>
+p3            20ms         2<br>
+p4            30ms         1<br>
+
+or the order priority<br>
+
+p1            5ms          1<br>
+p2            10ms         2<br>
+p3            20ms         3<br>
+p4            30ms         4<br>
+
+THe graphs of completion time and waiting time for both the schemes are given resepctively (1 on x axis is upper scheme)<br>
 
 
+These show that when processes which are lower in execution time are given higher priority the average waiting time and completion time <b>decreases</b>. And in the opposite case vice versa<br>
+
+Hence we should order processes of lower execution time higher priority for maximing the efficiency. This is usually done in MLFQs implemented in todays schedulers for OS.<br>
+
+Thanks for Reading <br>
+Vidush Jindal (2023592) <br>
+Rahul Agarwal (2023418)
