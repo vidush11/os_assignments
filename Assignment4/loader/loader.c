@@ -56,11 +56,14 @@ void copy_segment_data(void *page_start, char *file_data, Elf32_Phdr *phdr) {
     if (offset_in_segment + PAGE_SIZE > phdr->p_filesz) {
         // If the current offset is within the file size but extends beyond it,
         // adjust the bytes to copy to avoid reading past the file's data.
+        // Till the p_filesz various initialized segments of the code is stored ---> .text , .data, etc
         if (offset_in_segment < phdr->p_filesz) {
-            bytes_to_copy = phdr->p_filesz - offset_in_segment;
+            bytes_to_copy = phdr->p_filesz - offset_in_segment;  // So no need to initallize memory  here to store data further;
         } else {
             // If the offset is already beyond the file size, no data needs to be copied.
             // Only zero-initialize the page.
+            //After p_filesz the page is allocated for uninitialized data ----> .bss 
+            //The is set to zero Memcpy and since unused while allocation of the page, consider the page itself into the internal fragmentation.
             bytes_to_copy = 0;
         }
     }
