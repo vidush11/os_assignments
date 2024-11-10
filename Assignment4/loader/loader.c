@@ -79,16 +79,14 @@ void loader_cleanup() {
 
 int is_valid_address(void* addr, Elf32_Phdr **segment) {   // To  detect if address access fault generated is a segment fault  or a page fault
     for (int i = 0; i < ehdr->e_phnum; i++) {
-        if (phdr[i].p_type == PT_LOAD) {
-            void *seg_start = (void*)phdr[i].p_vaddr;
-            void *seg_end = (void*)(phdr[i].p_vaddr + phdr[i].p_memsz);
-            if (addr >= seg_start && addr < seg_end) {
-                *segment = &phdr[i];
-                return 1; //  Return true if the fault is in the PT_LOAD segment ---> indicating a page fault
-            }
-        }
+        void *seg_start = (void*)phdr[i].p_vaddr;
+        void *seg_end = (void*)(phdr[i].p_vaddr + phdr[i].p_memsz);
+        if (addr >= seg_start && addr < seg_end) {
+            *segment = &phdr[i];
+            return 1; //  Return true if the fault is in the PT_LOAD segment ---> indicating a page fault
+        }    
     }
-    return 0; // Return false if the fault is not in the PT_LOAD segment ---> indicating a "real segment fault
+    return 0; // Return false if the fault is not in the PT_LOAD segment ---> indicating a "real" segment fault
 }
 
 void copy_segment_data(void *page_start, char *file_data, Elf32_Phdr *phdr, void *addr) {
