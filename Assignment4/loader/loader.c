@@ -29,7 +29,7 @@ struct assigned_memory {
 struct assigned_memory *memory = NULL;
 
 // Recursive function to store memory delails to keep track of it and delete after use.
-struct assigned_memory *allocate_memory(struct assigned_memory *memory, void *address) {
+struct assigned_memory *store_memory(struct assigned_memory *memory, void *address) {
     if (memory == NULL) {
         memory = malloc(sizeof(struct assigned_memory));
         if (memory == NULL) {
@@ -41,7 +41,7 @@ struct assigned_memory *allocate_memory(struct assigned_memory *memory, void *ad
         return memory;
     }
 
-    memory->next = allocate_memory(memory->next, address);
+    memory->next = store_memory(memory->next, address);
     return memory;
 }
 
@@ -121,7 +121,7 @@ void copy_segment_data(void *page_start, char *file_data, Elf32_Phdr *phdr, void
         perror("mmap failed");
         exit(1);
     }
-    memory = allocate_memory(memory, (void*)mapped_page);
+    memory = store_memory(memory, (void*)mapped_page);
 
     // Copy the part of segment required by the program if not zero.
     if (bytes_to_copy > 0) {
