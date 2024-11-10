@@ -73,7 +73,6 @@ void loader_cleanup() {
     }
     if (fd != -1) {
         close(fd);
-        fd = -1; 
     }
 }
 
