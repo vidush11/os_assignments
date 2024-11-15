@@ -9,9 +9,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdbool.h>
+#include <semaphore.h>
 
 #define NAME "/yoyo"
 #define max_size 4096
+sem_t* sema;
 
 int max (int a, int b){
     if (a>=b) return a;
@@ -116,17 +118,18 @@ Process* dequeue(Pr_Queue* pq){ //max element for a max heap
 
 
 int main(int argc, const char * argv[]) {
-    
+   
     int ncpu=1;
     int tslice=10;
     if (argc>1){
         ncpu=atoi(argv[1]);
         tslice=atoi(argv[2]);
     }
-    
+        
     int fd=shm_open(NAME, O_RDWR, 0666);
     void* shm_ptr= mmap(0, max_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
     
+    sema = sem_open("/jaat_semaphore", 0);
     int old_size=0;
     
     Pr_Queue my_queue;
@@ -146,8 +149,9 @@ int main(int argc, const char * argv[]) {
         
         to_add=0;
         
+        sem_wait(sema);
         int s=*((int*) shm_ptr);
-        
+        sem_post(sema);
         if (s>old_size){
             
             for (int i=old_size; i<s; i+=2){
@@ -157,7 +161,9 @@ int main(int argc, const char * argv[]) {
                 proc->scheduling_time=my_queue.size;
                 
                 enqueue(&my_queue, proc);
-            }
+                
+                
+            }        
             
             old_size=s;
         }
@@ -169,7 +175,7 @@ int main(int argc, const char * argv[]) {
         for (int i=0; i<min(pq_size, ncpu); i++){
             Process* proc= dequeue(&my_queue);
             Process* new_process= (Process*) malloc(sizeof(Process));
-            //printf("%d\n", proc.pid);
+//            printf("%d\n", proc.pid);
             kill(proc->pid, 18);
             new_process->pid=proc->pid;
             new_process->priority=proc->priority;
@@ -183,10 +189,11 @@ int main(int argc, const char * argv[]) {
         
     }
     
+    //sem_close(sema);
     //munmap(shm_ptr, max_size);
     //close(fd);
     
     //shm_unlink(NAME);
-    
+  	
     return 0;
 }
