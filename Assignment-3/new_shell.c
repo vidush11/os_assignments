@@ -9,11 +9,12 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-
+#include <semaphore.h>
 
 #define max_line 80
 #define NAME "/yoyo"
 #define size 4096
+sem_t* sema;
 
 char buffer[1000];
 char com_list[20][1024];
@@ -129,12 +130,14 @@ int main(int argc, char* argv[]) {
     exit(1);
     }
     
-    ftruncate(fd, size); //limiting the size of shm equal size
+    ftruncate(fd, size); //limiting the size of shm equal to size
     
     void* shm_ptr= mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
     
     *((int*) shm_ptr)=0; //setting the size of array in shared memory to be 0
     //printf("%d", getpid());
+    
+    sema = sem_open("/jaat_semaphore", O_CREAT, 0644, 1); //1 for initial value
     int ncpu=1;
     int tslice=10;
     if (argc>1){
@@ -327,11 +330,12 @@ int main(int argc, char* argv[]) {
                 printf("Process: %d submitted for scheduler.\n", pid);
                 //waitpid(pid, NULL, 0);
                 kill(pid, 19);
-                    
+                sem_wait(sema);
                 int l=*((int*) shm_ptr);
                 *((int*) shm_ptr+l+1)=pid;
                 *((int*) shm_ptr+l+2)=priority;
                 *((int*) shm_ptr)=l+2;
+                sem_post(sema);	
                 
             }
             else if (background ) {
@@ -359,6 +363,8 @@ int main(int argc, char* argv[]) {
         add_to_past_com(input, pid,time_taken);
     }
 
+    sem_close(sema);
+    sem_unlink("/jaat_semaphore");
     munmap(shm_ptr, size);
     close(fd);
     shm_unlink(NAME);
