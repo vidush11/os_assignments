@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <cstring>
 #include <pthread.h>
+#include <sys/time.h>
 
 typedef struct{
     int l;
@@ -11,6 +12,14 @@ typedef struct{
     std::function<void(int)> lambda;
     
 } arg;
+
+tydef struct{
+  int l1;
+  int h1;
+  int l2;
+  int h2;
+  std::function<void(int, int)> lambda;
+}
 
 int min(int a, int b){
     if (a<b) return a;
@@ -33,6 +42,9 @@ void* run(void* a){
     return NULL;
 }
 void parallel_for(int low, int high, std::function<void(int)> &&lambda, int num_threads){
+    struct timeval tv1, tv2; 
+    gettimeofday(&tv1, NULL);
+
     pthread_t ids[num_threads];
     int l=(high-low)/num_threads;
     l+= (l*num_threads<high-low) ?1 :0; //ceil
@@ -51,12 +63,15 @@ void parallel_for(int low, int high, std::function<void(int)> &&lambda, int num_
         int res;
         pthread_join(*(ids+i), NULL);
     }
-    
+    gettimeofday(&tv2, NULL);
+    printf("Execution time: %f\n", (double)(tv2.tv_usec - tv1.tv_usec) / 1000000 + (double)(tv2.tv_sec - tv1.tv_sec));
+
     
 }
 
 void parallel_for(int low1, int high1, int low2, int high2, std::function<void(int, int)> &&lambda, int num_threads){
     return;
+
 }
 
 int user_main(int argc, char **argv);
@@ -99,5 +114,3 @@ int main(int argc, char **argv) {
 }
 
 #define main user_main
-
-
