@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <cstring>
 #include <pthread.h>
-#include <sys/time.h>
+#include <time.h>
 
 typedef struct{
     int l;
@@ -13,13 +13,15 @@ typedef struct{
     
 } arg;
 
-tydef struct{
-  int l1;
-  int h1;
-  int l2;
-  int h2;
-  std::function<void(int, int)> lambda;
-}
+typedef struct{
+    int lx;
+    int ly;
+    int hx;
+    int hy;
+
+    std::function<void(int, int)> lambda;
+    
+} arg2;
 
 int min(int a, int b){
     if (a<b) return a;
@@ -41,37 +43,97 @@ void* run(void* a){
     
     return NULL;
 }
-void parallel_for(int low, int high, std::function<void(int)> &&lambda, int num_threads){
-    struct timeval tv1, tv2; 
-    gettimeofday(&tv1, NULL);
 
+void* run2(void* a){
+    arg2* new_arg=(arg2*) a;
+
+    int lx=new_arg->lx;
+    int hx=new_arg->hx;
+    
+    int ly=new_arg->ly;
+    int hy=new_arg->hy;
+    
+    std::function<void(int,int)> lambda= new_arg->lambda;
+    
+    free(new_arg);
+    for (int j=ly ;j<hy; j++){
+        for (int i=lx; i<hx; i++){
+            lambda(i,j);
+        }
+    }
+    
+    return NULL;
+}
+void parallel_for(int low, int high, std::function<void(int)> &&lambda, int num_threads){
+    clock_t start=clock();
+    
     pthread_t ids[num_threads];
     int l=(high-low)/num_threads;
     l+= (l*num_threads<high-low) ?1 :0; //ceil
     
     
-    for (int i=0; i<num_threads; i++){
+    for (int i=1; i<num_threads; i++){
         arg* new_arg= (arg*) malloc (sizeof(arg));
-        new_arg->l=i*l;
-        new_arg->h=min((i+1)*l, high);
+        new_arg->l=low+i*l;
+        new_arg->h=min(low+(i+1)*l, high);
         new_arg->lambda= lambda;
         pthread_create(ids+i, NULL,  run, new_arg);
         
     }
     
-    for (int i=0; i<num_threads; i++){
+    arg* new_arg= (arg*) malloc (sizeof(arg));
+    new_arg->l=low;
+    new_arg->h=min(low+l, high);
+    new_arg->lambda= lambda;
+    run(new_arg);
+
+    
+    for (int i=1; i<num_threads; i++){
         int res;
         pthread_join(*(ids+i), NULL);
     }
-    gettimeofday(&tv2, NULL);
-    printf("Execution time: %f\n", (double)(tv2.tv_usec - tv1.tv_usec) / 1000000 + (double)(tv2.tv_sec - tv1.tv_sec));
-
+    
+    clock_t end=clock();
+    float seconds = (float)(end - start)/CLOCKS_PER_SEC;
+    
+    printf("Execution time: %f seconds.\n", seconds);
     
 }
 
 void parallel_for(int low1, int high1, int low2, int high2, std::function<void(int, int)> &&lambda, int num_threads){
-    return;
-
+    clock_t start=clock();
+    
+    pthread_t ids[num_threads];
+    int l=(high2-low2)/num_threads;
+    
+    
+    for (int i=1; i<num_threads; i++){
+        arg2* new_arg= (arg2*) malloc (sizeof(arg2));
+        new_arg->lx=low1;
+        new_arg->hx=high1;
+        new_arg->ly=low2+i*l;
+        new_arg->hy=min(low2+(i+1)*l, high2);
+        new_arg->lambda= lambda;
+        pthread_create(ids+i, NULL,  run2, new_arg);
+        
+    }
+    
+    arg2* new_arg= (arg2*) malloc (sizeof(arg2));
+    new_arg->lx=low1;
+    new_arg->hx=high1;
+    new_arg->ly=low2;
+    new_arg->hy=min(low2+l, high2);
+    new_arg->lambda= lambda;
+    run2(new_arg);
+    
+    for (int i=1; i<num_threads; i++){
+        int res;
+        pthread_join(*(ids+i), NULL);
+    }
+    
+    clock_t end= clock();
+    float seconds = (float)(end-start)/CLOCKS_PER_SEC;
+    printf("Execution time: %fseconds.\n", seconds);
 }
 
 int user_main(int argc, char **argv);
@@ -106,7 +168,7 @@ int main(int argc, char **argv) {
   int rc = user_main(argc, argv);
  
   auto /*name*/ lambda2 = [/*nothing captured*/]() {
-    std::cout<<"====== Hope you didn't enjoy CSE231(A) ======\n";
+    std::cout<<"====== YOYO HONEY SINGH ======\n";
     /* you can have any number of statements inside this lambda body */
   };
   demonstration(lambda2);
@@ -114,3 +176,5 @@ int main(int argc, char **argv) {
 }
 
 #define main user_main
+
+
