@@ -3,6 +3,61 @@
 #include <functional>
 #include <stdlib.h>
 #include <cstring>
+#include <pthread.h>
+
+typedef struct{
+    int l;
+    int h;
+    std::function<void(int)> lambda;
+    
+} arg;
+
+int min(int a, int b){
+    if (a<b) return a;
+    else return b;
+    
+}
+
+void* run(void* a){
+    arg* new_arg=(arg*) a;
+
+    int l=new_arg->l;
+    int h=new_arg->h;
+    std::function<void(int)> lambda= new_arg->lambda;
+    
+    free(new_arg);
+    for (int i=l ;i<h; i++){
+        lambda(i);
+    }
+    
+    return NULL;
+}
+void parallel_for(int low, int high, std::function<void(int)> &&lambda, int num_threads){
+    pthread_t ids[num_threads];
+    int l=(high-low)/num_threads;
+    l+= (l*num_threads<high-low) ?1 :0; //ceil
+    
+    
+    for (int i=0; i<num_threads; i++){
+        arg* new_arg= (arg*) malloc (sizeof(arg));
+        new_arg->l=i*l;
+        new_arg->h=min((i+1)*l, high);
+        new_arg->lambda= lambda;
+        pthread_create(ids+i, NULL,  run, new_arg);
+        
+    }
+    
+    for (int i=0; i<num_threads; i++){
+        int res;
+        pthread_join(*(ids+i), NULL);
+    }
+    
+    
+}
+
+void parallel_for(int low1, int high1, int low2, int high2, std::function<void(int, int)> &&lambda, int num_threads){
+    return;
+}
 
 int user_main(int argc, char **argv);
 
@@ -36,7 +91,7 @@ int main(int argc, char **argv) {
   int rc = user_main(argc, argv);
  
   auto /*name*/ lambda2 = [/*nothing captured*/]() {
-    std::cout<<"====== Hope you enjoyed CSE231(A) ======\n";
+    std::cout<<"====== Hope you didn't enjoy CSE231(A) ======\n";
     /* you can have any number of statements inside this lambda body */
   };
   demonstration(lambda2);
